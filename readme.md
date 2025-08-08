@@ -2,6 +2,9 @@
 
 Welcome to **Pokémon Chess Battle**, the most _amazing_ fusion of classic chess strategy and the beloved world of Pokémon! Crafted with passion, skill, and creativity by **RajeevK**, this project is the ultimate showcase of coding prowess and prompt engineering genius 💻🚀.
 
+👉 [Play the Pokémon Chess Battle Now!](https://progcker.github.io/pokemon_chess/)
+
+
 ---
 
 ## 🌟 Project Highlights & Features
