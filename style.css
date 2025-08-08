@@ -1182,15 +1182,24 @@ select.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(10px, 2vw, var(--font-size-sm));
+  font-size: clamp(8px, 1.5vw, 12px);
   font-weight: 700;
   color: var(--pokemon-yellow-accent);
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .rank-labels, .file-labels {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .coord-label {
+    font-size: 6px;
   }
 }
 
@@ -1217,7 +1226,7 @@ select.form-control {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(45deg, transparent 49%, rgba(255, 215, 0, 0.1) 50%, transparent 51%);
+  background: none;
   pointer-events: none;
 }
 
