@@ -1,7 +1,7 @@
 // Pokemon Chess Battle Arena - WITH REAL POKEMON IMAGES - FIXED
 class PokemonChessBattle {
     constructor() {
-        // REAL Pokemon sprite URLs from provided data
+        // OPTIMIZED Pokemon sprite URLs with preloading
         this.pokemonSprites = {
             'white': {
                 'king': 'https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/d3dbe2ba-225e-4f7f-a4da-59a91d1e7cc5.png', // Arceus
@@ -20,6 +20,10 @@ class PokemonChessBattle {
                 'pawn': 'https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/443a841b-bb57-4508-bfd4-ae2aeebbc95a.png' // Eevee
             }
         };
+        
+        // Image cache for performance optimization
+        this.imageCache = new Map();
+        this.preloadedImages = new Set();
 
         // Pokemon data with names and types
         this.pokemonData = {
@@ -75,10 +79,12 @@ class PokemonChessBattle {
         this.capturedCountBlack = document.getElementById('captured-count-black');
 
         // Initialize the complete game
+        this.preloadCriticalImages();
         this.initializeBattle();
         this.setupEventHandlers();
         this.loadSavedGame();
         this.playBattleSound('start');
+        this.setupResponsiveHandlers();
     }
 
     createInitialBoard() {
@@ -145,6 +151,47 @@ class PokemonChessBattle {
         return square;
     }
 
+    // OPTIMIZED: Preload critical images for better performance
+    async preloadCriticalImages() {
+        const criticalPieces = ['king', 'queen', 'pawn']; // Most commonly seen pieces
+        const preloadPromises = [];
+        
+        for (const color of ['white', 'black']) {
+            for (const piece of criticalPieces) {
+                const url = this.pokemonSprites[color][piece];
+                if (!this.preloadedImages.has(url)) {
+                    preloadPromises.push(this.preloadImage(url));
+                }
+            }
+        }
+        
+        try {
+            await Promise.allSettled(preloadPromises);
+            console.log('Critical Pokemon images preloaded');
+        } catch (error) {
+            console.warn('Some images failed to preload:', error);
+        }
+    }
+    
+    // OPTIMIZED: Smart image preloading with caching
+    preloadImage(url) {
+        return new Promise((resolve, reject) => {
+            if (this.imageCache.has(url)) {
+                resolve(this.imageCache.get(url));
+                return;
+            }
+            
+            const img = new Image();
+            img.onload = () => {
+                this.imageCache.set(url, img);
+                this.preloadedImages.add(url);
+                resolve(img);
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
+    }
+
     createPokemonPiece(pokemon) {
         // Get Pokemon data and sprite URL
         const pokemonData = this.pokemonData[pokemon.color][pokemon.type];
@@ -157,65 +204,90 @@ class PokemonChessBattle {
         pieceElement.dataset.piece = pokemon.type;
         pieceElement.title = `${pokemonData.name} (${pokemonData.type}-type)`;
         
-        // Create the Pokemon image element using IMG tag for better reliability
-        const imageElement = document.createElement('img');
-        imageElement.className = 'pokemon-image';
-        imageElement.src = spriteUrl;
+        // OPTIMIZED: Use cached image if available, otherwise create new one
+        let imageElement;
+        if (this.imageCache.has(spriteUrl)) {
+            imageElement = this.imageCache.get(spriteUrl).cloneNode();
+            imageElement.className = 'pokemon-image';
+        } else {
+            imageElement = document.createElement('img');
+            imageElement.className = 'pokemon-image';
+            imageElement.src = spriteUrl;
+            // Lazy load non-critical images
+            if (!this.preloadedImages.has(spriteUrl)) {
+                imageElement.loading = 'lazy';
+            }
+        }
+        
         imageElement.alt = pokemonData.name;
         imageElement.draggable = false;
         
-        // Style the image directly
+        // RESPONSIVE: Remove fixed sizing, let CSS handle it
         imageElement.style.cssText = `
-            width: 52px;
-            height: 52px;
             object-fit: contain;
             border-radius: 6px;
             filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
             transition: all 0.25s ease;
             pointer-events: none;
+            width: 100%;
+            height: 100%;
+            max-width: 90%;
+            max-height: 90%;
         `;
         
-        // Add image loading error handling with fallback
+        // OPTIMIZED: Enhanced error handling with better fallback
         imageElement.onerror = () => {
             console.warn(`Failed to load image for ${pokemonData.name}:`, spriteUrl);
-            // Create fallback element with Pokemon name and colored background
-            const fallbackElement = document.createElement('div');
-            fallbackElement.className = 'pokemon-image pokemon-fallback';
-            fallbackElement.style.cssText = `
-                width: 52px;
-                height: 52px;
-                background: linear-gradient(135deg, ${pokemonData.color}, ${pokemonData.color}aa);
-                border-radius: 6px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
-                color: white;
-                font-size: 8px;
-                font-weight: bold;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-                text-align: center;
-                filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-                border: 2px solid ${pokemonData.color};
-                box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
-            `;
-            fallbackElement.innerHTML = `
-                <div style="font-size: 10px; line-height: 1;">${pokemonData.name}</div>
-                <div style="font-size: 6px; opacity: 0.8; margin-top: 1px;">${pokemonData.type}</div>
-            `;
-            
-            // Replace the broken image with fallback
-            pieceElement.removeChild(imageElement);
-            pieceElement.appendChild(fallbackElement);
+            this.createFallbackElement(pieceElement, imageElement, pokemonData);
         };
         
         imageElement.onload = () => {
-            console.log(`Successfully loaded image for ${pokemonData.name}`);
+            if (!this.imageCache.has(spriteUrl)) {
+                this.imageCache.set(spriteUrl, imageElement.cloneNode());
+            }
         };
         
         pieceElement.appendChild(imageElement);
         
+        // Preload this image for future use if not already cached
+        if (!this.preloadedImages.has(spriteUrl)) {
+            this.preloadImage(spriteUrl).catch(() => {});
+        }
+        
         return pieceElement;
+    }
+    
+    // OPTIMIZED: Better fallback element creation
+    createFallbackElement(pieceElement, imageElement, pokemonData) {
+        const fallbackElement = document.createElement('div');
+        fallbackElement.className = 'pokemon-image pokemon-fallback';
+        fallbackElement.style.cssText = `
+            width: 100%;
+            height: 100%;
+            max-width: 90%;
+            max-height: 90%;
+            background: linear-gradient(135deg, ${pokemonData.color}, ${pokemonData.color}aa);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            font-size: clamp(6px, 1.5vw, 8px);
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-align: center;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+            border: 2px solid ${pokemonData.color};
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+        `;
+        fallbackElement.innerHTML = `
+            <div style="font-size: clamp(8px, 2vw, 10px); line-height: 1;">${pokemonData.name}</div>
+            <div style="font-size: clamp(5px, 1.2vw, 6px); opacity: 0.8; margin-top: 1px;">${pokemonData.type}</div>
+        `;
+        
+        pieceElement.removeChild(imageElement);
+        pieceElement.appendChild(fallbackElement);
     }
 
     setupEventHandlers() {
@@ -255,6 +327,72 @@ class PokemonChessBattle {
 
         // Auto-save on page unload
         window.addEventListener('beforeunload', () => this.saveGame());
+    }
+    
+    // RESPONSIVE: Setup responsive event handlers
+    setupResponsiveHandlers() {
+        // Handle orientation changes on mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.handleResize();
+            }, 100);
+        });
+        
+        // Handle window resize with debouncing
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.handleResize();
+            }, 250);
+        });
+        
+        // Handle touch events for mobile
+        if ('ontouchstart' in window) {
+            this.setupTouchHandlers();
+        }
+    }
+    
+    // RESPONSIVE: Handle resize events
+    handleResize() {
+        // Force re-render of battlefield to adjust to new dimensions
+        this.renderCompleteBattlefield();
+        
+        // Update any fixed positioning elements
+        this.updateResponsiveElements();
+    }
+    
+    // RESPONSIVE: Setup touch handlers for mobile
+    setupTouchHandlers() {
+        let touchStartTime = 0;
+        
+        this.battlefield.addEventListener('touchstart', (e) => {
+            touchStartTime = Date.now();
+            e.preventDefault(); // Prevent double-tap zoom
+        }, { passive: false });
+        
+        this.battlefield.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - touchStartTime;
+            if (touchDuration < 300) { // Quick tap
+                const touch = e.changedTouches[0];
+                const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                const square = element?.closest('.battle-square');
+                if (square) {
+                    this.handleSquareClick({ target: square });
+                }
+            }
+            e.preventDefault();
+        }, { passive: false });
+    }
+    
+    // RESPONSIVE: Update responsive elements
+    updateResponsiveElements() {
+        // Update any elements that need responsive adjustments
+        const battlefield = document.querySelector('.battlefield');
+        if (battlefield) {
+            const size = Math.min(window.innerWidth * 0.9, 520);
+            battlefield.style.setProperty('--dynamic-size', `${size}px`);
+        }
     }
 
     handleSquareClick(e) {
@@ -1352,26 +1490,20 @@ class PokemonChessBattle {
             }
             
         } catch (error) {
-            console.error('Failed to load Pokemon battle:', error);
         }
+        
+    } catch (error) {
+        console.error('Failed to load Pokemon battle:', error);
     }
 }
 
-// Add CSS for new animations
+// OPTIMIZED: Add CSS for new animations and responsive features
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fade-in-out {
-        0% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.8); }
-        15% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1.05); }
-        85% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
-        100% { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9); }
-    }
-    
-    @keyframes slide-in-out {
-        0% { opacity: 0; transform: translateX(50px) scale(0.9); }
-        15% { opacity: 1; transform: translateX(0px) scale(1.05); }
-        85% { opacity: 1; transform: translateX(0px) scale(1); }
-        100% { opacity: 0; transform: translateX(-50px) scale(0.9); }
+        0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        10%, 90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
     }
     
     @keyframes pulse {
@@ -1379,19 +1511,95 @@ style.textContent = `
         50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     }
     
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
+    .pokemon-app {
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden; /* Prevent horizontal scroll */
     }
     
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    .hidden {
+        display: none !important;
+    }
+    
+    /* RESPONSIVE: Enhanced visual effects */
+    .battle-square.check-threat {
+        animation: danger-pulse 1s infinite;
+        border: 2px solid #ff4444;
+    }
+    
+    @keyframes danger-pulse {
+        0%, 100% { box-shadow: 0 0 5px rgba(255, 68, 68, 0.5); }
+        50% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.9); }
+    }
+    
+    .pokemon-piece.captured {
+        animation: capture-effect 0.8s ease-out;
+    }
+    
+    @keyframes capture-effect {
+        0% { transform: scale(1) rotate(0deg); opacity: 1; }
+        50% { transform: scale(1.3) rotate(180deg); opacity: 0.7; }
+        100% { transform: scale(0) rotate(360deg); opacity: 0; }
+    }
+    
+    /* RESPONSIVE: Mobile optimizations */
+    @media (max-width: 768px) {
+        .pokemon-status-display {
+            top: 5% !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            max-width: 90vw !important;
+            font-size: 14px !important;
+        }
+        
+        .valid-move-indicator {
+            width: 15px !important;
+            height: 15px !important;
+        }
+        
+        .battle-square:hover {
+            transform: none !important; /* Disable hover effects on mobile */
+        }
+        
+        .pokemon-piece:hover {
+            transform: scale(1.05) !important; /* Reduced hover effect on mobile */
+        }
+    }
+    
+    /* PERFORMANCE: Reduce animations on low-end devices */
+    @media (prefers-reduced-motion: reduce) {
+        .pokemon-piece, .battle-square, .pokeball-spinner {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+    
+    /* RESPONSIVE: Very small screens */
+    @media (max-width: 480px) {
+        .pokemon-status-display {
+            font-size: 12px !important;
+            padding: 12px 16px !important;
+        }
+        
+        .modal-container {
+            width: 95% !important;
+            padding: var(--space-20) !important;
+        }
     }
 `;
 document.head.appendChild(style);
 
-// Initialize the Pokemon Chess Battle when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    new PokemonChessBattle();
-});
+// OPTIMIZED: Initialize the game when DOM is loaded with performance monitoring
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const startTime = performance.now();
+        window.pokemonChess = new PokemonChessBattle();
+        const loadTime = performance.now() - startTime;
+        console.log(`Pokemon Chess initialized in ${loadTime.toFixed(2)}ms`);
+    });
+} else {
+    const startTime = performance.now();
+    window.pokemonChess = new PokemonChessBattle();
+    const loadTime = performance.now() - startTime;
+    console.log(`Pokemon Chess initialized in ${loadTime.toFixed(2)}ms`);
+}
