@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Pokémon Chess Battle Arena ⚡</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="pokemon-app">
+        <!-- Premium Pokemon Header -->
+        <header class="battle-header">
+            <div class="header-grid">
+                <div class="logo-section">
+                    <div class="pokeball-spinner">⚡</div>
+                    <h1 class="pokemon-title">
+                        <span class="title-main">POKÉMON</span>
+                        <span class="title-sub">CHESS BATTLE</span>
+                    </h1>
+                    <div class="pokeball-spinner reverse">⚡</div>
+                </div>
+                
+                <div class="trainer-status">
+                    <div class="active-trainer">
+                        <div class="trainer-portrait">
+                            <span class="trainer-sprite">👤</span>
+                            <div class="trainer-aura"></div>
+                        </div>
+                        <div class="trainer-info">
+                            <span id="current-trainer" class="trainer-name">White Trainer</span>
+                            <div class="trainer-team-indicator" id="team-indicator">
+                                <span class="team-badge">TEAM MYSTIC</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Battle Stadium -->
+        <main class="battle-stadium">
+            <div class="stadium-layout">
+                <!-- Left Team Box - Captured Pokemon -->
+                <aside class="team-box team-box-left">
+                    <div class="box-header">
+                        <div class="team-emblem blue">🔵</div>
+                        <h3 class="team-name">TEAM MYSTIC</h3>
+                        <div class="team-score" id="captured-count-black">0</div>
+                    </div>
+                    <div class="pokemon-collection" id="captured-black">
+                        <div class="empty-box">
+                            <div class="empty-icon">📦</div>
+                            <div class="empty-text">No Captured Pokémon</div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Central Battle Arena -->
+                <section class="battle-arena">
+                    <div class="arena-container">
+                        <div class="battlefield-frame">
+                            <!-- Coordinate Labels -->
+                            <div class="coordinate-grid">
+                                <!-- Rank coordinates (1-8) -->
+                                <div class="rank-labels">
+                                    <div class="coord-label">8</div>
+                                    <div class="coord-label">7</div>
+                                    <div class="coord-label">6</div>
+                                    <div class="coord-label">5</div>
+                                    <div class="coord-label">4</div>
+                                    <div class="coord-label">3</div>
+                                    <div class="coord-label">2</div>
+                                    <div class="coord-label">1</div>
+                                </div>
+                                
+                                <!-- Main Battle Grid -->
+                                <div class="battlefield" id="chess-battlefield">
+                                    <!-- 64 squares will be generated here -->
+                                </div>
+                                
+                                <!-- File coordinates (a-h) -->
+                                <div class="file-labels">
+                                    <div class="coord-label">a</div>
+                                    <div class="coord-label">b</div>
+                                    <div class="coord-label">c</div>
+                                    <div class="coord-label">d</div>
+                                    <div class="coord-label">e</div>
+                                    <div class="coord-label">f</div>
+                                    <div class="coord-label">g</div>
+                                    <div class="coord-label">h</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Team Box - Captured Pokemon -->
+                <aside class="team-box team-box-right">
+                    <div class="box-header">
+                        <div class="team-emblem red">🔴</div>
+                        <h3 class="team-name">TEAM VALOR</h3>
+                        <div class="team-score" id="captured-count-white">0</div>
+                    </div>
+                    <div class="pokemon-collection" id="captured-white">
+                        <div class="empty-box">
+                            <div class="empty-icon">📦</div>
+                            <div class="empty-text">No Captured Pokémon</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Control Console -->
+            <div class="control-console">
+                <!-- Battle Status Monitor -->
+                <div class="status-monitor">
+                    <div class="monitor-display">
+                        <div class="status-header">
+                            <h3>BATTLE STATUS</h3>
+                            <div class="status-led active"></div>
+                        </div>
+                        <div class="status-content">
+                            <div id="game-status" class="battle-state">Battle in Progress</div>
+                            <div id="check-warning" class="warning-alert hidden">
+                                <span class="warning-icon">⚠️</span>
+                                <span class="warning-text">Pokémon in Danger!</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pokémon Center Controls -->
+                <div class="pokemon-center">
+                    <div class="center-display">
+                        <div class="center-header">
+                            <h3>POKÉMON CENTER</h3>
+                            <div class="center-logo">🏥</div>
+                        </div>
+                        <div class="control-grid">
+                            <button id="new-battle" class="poke-btn primary">
+                                <span class="btn-icon">🔄</span>
+                                <span class="btn-text">NEW BATTLE</span>
+                            </button>
+                            <button id="undo-move" class="poke-btn secondary" disabled>
+                                <span class="btn-icon">↶</span>
+                                <span class="btn-text">UNDO MOVE</span>
+                            </button>
+                            <button id="theme-toggle" class="poke-btn special">
+                                <span class="btn-icon">🌙</span>
+                                <span class="btn-text">DARK MODE</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Battle Log -->
+                <div class="battle-log">
+                    <div class="log-display">
+                        <div class="log-header">
+                            <h3>BATTLE LOG</h3>
+                            <div class="log-icon">📋</div>
+                        </div>
+                        <div id="battle-history" class="log-content">
+                            <div class="no-battles">No battles recorded yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Evolution Modal -->
+        <div id="evolution-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-container evolution-dialog">
+                <div class="evolution-header">
+                    <h2>✨ POKÉMON EVOLUTION! ✨</h2>
+                    <div class="evolution-stars">⭐⭐⭐</div>
+                </div>
+                <p class="evolution-message">Your Pokémon has reached the end of the battlefield! Choose its evolution:</p>
+                <div class="evolution-choices">
+                    <button class="evolution-option" data-piece="queen">
+                        <div class="choice-symbol">👁️</div>
+                        <div class="choice-details">
+                            <div class="choice-title">LEGENDARY</div>
+                            <div class="choice-pokemon">Mewtwo/Darkrai</div>
+                        </div>
+                    </button>
+                    <button class="evolution-option" data-piece="rook">
+                        <div class="choice-symbol">⚙️</div>
+                        <div class="choice-details">
+                            <div class="choice-title">FORTRESS</div>
+                            <div class="choice-pokemon">Steelix/Aggron</div>
+                        </div>
+                    </button>
+                    <button class="evolution-option" data-piece="bishop">
+                        <div class="choice-symbol">🔮</div>
+                        <div class="choice-details">
+                            <div class="choice-title">PSYCHIC</div>
+                            <div class="choice-pokemon">Alakazam/Gengar</div>
+                        </div>
+                    </button>
+                    <button class="evolution-option" data-piece="knight">
+                        <div class="choice-symbol">🔥</div>
+                        <div class="choice-details">
+                            <div class="choice-title">SWIFT</div>
+                            <div class="choice-pokemon">Rapidash/Mudsdale</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Victory Modal -->
+        <div id="victory-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-container victory-dialog">
+                <div class="victory-header">
+                    <h2 id="victory-title">🏆 BATTLE COMPLETE! 🏆</h2>
+                    <div class="victory-celebration">🎉🎊🎉</div>
+                </div>
+                <p id="victory-message" class="victory-text">Congratulations, Pokémon Master!</p>
+                <div class="victory-actions">
+                    <button id="new-battle-victory" class="poke-btn primary large">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">NEW BATTLE</span>
+                    </button>
+                    <button id="close-victory" class="poke-btn secondary large">
+                        <span class="btn-text">CLOSE</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
